@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', function() {
     for (let i = 1; i <= 100; i++) {
         let square = document.createElement('div');
         square.className = 'led-square bg-dark';
-        square.textContent = i;
         ledDisplay.appendChild(square);
     }
 

@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     let boardGames = []; // This will hold the data fetched from the backend
     let filteredGames = []; // This will hold the filtered data
+    let debounceTimer; // Timer for debouncing
 
     // Fetch data from the backend
     fetch('/api/boardgames')
@@ -59,18 +60,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         renderTable(filteredGames);
+        debounceSendSelected();
     }
 
-    // Apply filters when the button is clicked
-    document.getElementById('applyFilters').addEventListener('click', applyFilters);
+    // Debounce function to delay sending selected records
+    function debounceSendSelected() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            sendSelectedRecords();
+        }, 3000); // 3 seconds delay
+    }
 
-    // Apply filters when any filter input changes
-    document.getElementById('nameFilter').addEventListener('input', applyFilters);
-    document.getElementById('categoryFilter').addEventListener('change', applyFilters);
-    document.getElementById('playersFilter').addEventListener('input', applyFilters);
-
-    // Send selected records to the backend
-    document.getElementById('sendSelected').addEventListener('click', function() {
+    // Function to send selected records to the backend
+    function sendSelectedRecords() {
         let selectedRecords = filteredGames.map(game => {
             return {
                 BoardGameName: game.BoardGameName,
@@ -96,5 +98,16 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             console.error('Error:', error);
         });
-    });
+    }
+
+    // Apply filters when the button is clicked
+    document.getElementById('applyFilters').addEventListener('click', applyFilters);
+
+    // Apply filters when any filter input changes
+    document.getElementById('nameFilter').addEventListener('input', applyFilters);
+    document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+    document.getElementById('playersFilter').addEventListener('input', applyFilters);
+
+    // Send selected records to the backend when the button is clicked
+    document.getElementById('sendSelected').addEventListener('click', sendSelectedRecords);
 });
