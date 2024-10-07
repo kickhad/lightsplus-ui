@@ -100,8 +100,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Function to clear filters and reset the table
+    function clearFilters() {
+        document.getElementById('nameFilter').value = '';
+        document.getElementById('categoryFilter').selectedIndex = -1;
+        document.getElementById('playersFilter').value = '';
+        filteredGames = boardGames;
+        renderTable(boardGames);
+        debounceSendSelected();
+    }
+
     // Apply filters when the button is clicked
     document.getElementById('applyFilters').addEventListener('click', applyFilters);
+
+    // Clear filters when the button is clicked
+    document.getElementById('clearFilters').addEventListener('click', clearFilters);
 
     // Apply filters when any filter input changes
     document.getElementById('nameFilter').addEventListener('input', applyFilters);
