@@ -1,0 +1,28 @@
+We are building a web application with a Flaskback end. Use bootstrap styling. 
+
+The data is structured : 
+board_games =  [
+    {
+        "Category": ["Strategy"],
+        "BoardGameName": "Settlers of Catan",
+        "MinimumPlayers": 3,
+        "MaximumPlayers": 4,
+        "FirstLED": 1,
+        "LastLED": 10
+    }]
+    
+The data is constained like this:
+start_led and end_led represents a sequential range. Constrain the set so that there is no overlap between records.
+min_players <= max_players
+start_led < end_led
+
+
+The main page will display the data in a table that is dynamically updated client-side. 
+
+A free text field that filters the list by name. 
+Filters for categories. Multi select with ANY logic. 
+Number of Players is a single integer input. 
+
+Generate a button that sends the list of selected records to the backend. 
+Generate separate HTML and JS files.
+
