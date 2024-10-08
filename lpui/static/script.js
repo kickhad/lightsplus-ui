@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
-    let boardGames = []; // This will hold the data fetched from the backend
-    let filteredGames = []; // This will hold the filtered data
-    let debounceTimer; // Timer for debouncing
+    let boardGames = [];
+    let filteredGames = [];
+    let debounceTimer;
 
     // Fetch data from the backend
     fetch('/api/boardgames')
@@ -13,40 +13,31 @@ document.addEventListener('DOMContentLoaded', function() {
             renderTable(data);
         });
 
-    // Function to populate categories in the filter dropdown
+    // Populate categories in the filter dropdown
     function populateCategories(data) {
-        let categories = new Set();
-        data.forEach(game => {
-            game.Category.forEach(category => categories.add(category));
-        });
+        let categories = new Set(data.flatMap(game => game.Category));
         let categoryFilter = document.getElementById('categoryFilter');
         categories.forEach(category => {
-            let option = document.createElement('option');
-            option.value = category;
-            option.textContent = category;
-            categoryFilter.appendChild(option);
+            categoryFilter.appendChild(new Option(category, category));
         });
     }
 
-    // Function to render the table with the given data
+    // Render the table with the given data
     function renderTable(data) {
         let tableBody = document.querySelector('#boardGameTable tbody');
-        tableBody.innerHTML = '';
-        data.forEach(game => {
-            let row = document.createElement('tr');
-            row.innerHTML = `
+        tableBody.innerHTML = data.map(game => `
+            <tr>
                 <td>${game.BoardGameName}</td>
                 <td>${game.MinimumPlayers}</td>
                 <td>${game.MaximumPlayers}</td>
                 <td>${game.Category.join(', ')}</td>
                 <td>${game.FirstLED}</td>
                 <td>${game.LastLED}</td>
-            `;
-            tableBody.appendChild(row);
-        });
+            </tr>
+        `).join('');
     }
 
-    // Function to apply filters and update the table
+    // Apply filters and update the table
     function applyFilters() {
         let nameFilter = document.getElementById('nameFilter').value.toLowerCase();
         let categoryFilter = Array.from(document.getElementById('categoryFilter').selectedOptions).map(option => option.value);
@@ -66,41 +57,33 @@ document.addEventListener('DOMContentLoaded', function() {
     // Debounce function to delay sending selected records
     function debounceSendSelected() {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            sendSelectedRecords();
-        }, 3000); // 3 seconds delay
+        debounceTimer = setTimeout(sendSelectedRecords, 3000);
     }
 
-    // Function to send selected records to the backend
+    // Send selected records to the backend
     function sendSelectedRecords() {
+        let numbersBetween = [];
         let selectedRecords = filteredGames.map(game => {
+            for (let i = game.FirstLED; i <= game.LastLED; i++) {
+                numbersBetween.push(i);
+            }
             return {
-                BoardGameName: game.BoardGameName,
-                MinimumPlayers: game.MinimumPlayers,
-                MaximumPlayers: game.MaximumPlayers,
-                Category: game.Category,
                 FirstLED: game.FirstLED,
-                LastLED: game.LastLED
+                LastLED: game.LastLED,
+                NumbersBetween: numbersBetween
             };
         });
-
+    
         fetch('/api/selected-games', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(selectedRecords)
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(numbersBetween)
         })
         .then(response => response.json())
-        .then(data => {
-            // No need for a popup confirmation, flash message is handled by Flask
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
+        .catch(console.error);
     }
 
-    // Function to clear filters and reset the table
+    // Clear filters and reset the table
     function clearFilters() {
         document.getElementById('nameFilter').value = '';
         document.getElementById('categoryFilter').selectedIndex = -1;
@@ -110,17 +93,11 @@ document.addEventListener('DOMContentLoaded', function() {
         debounceSendSelected();
     }
 
-    // Apply filters when the button is clicked
+    // Event listeners
     document.getElementById('applyFilters').addEventListener('click', applyFilters);
-
-    // Clear filters when the button is clicked
     document.getElementById('clearFilters').addEventListener('click', clearFilters);
-
-    // Apply filters when any filter input changes
     document.getElementById('nameFilter').addEventListener('input', applyFilters);
     document.getElementById('categoryFilter').addEventListener('change', applyFilters);
     document.getElementById('playersFilter').addEventListener('input', applyFilters);
-
-    // Send selected records to the backend when the button is clicked
     document.getElementById('sendSelected').addEventListener('click', sendSelectedRecords);
 });
