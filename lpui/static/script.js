@@ -1,103 +1,98 @@
 document.addEventListener('DOMContentLoaded', function() {
-    let boardGames = [];
-    let filteredGames = [];
-    let debounceTimer;
+    const boardGameNameInput = document.getElementById('boardGameName');
+    const categorySelect = document.getElementById('category');
+    const minPlayersInput = document.getElementById('minPlayers');
+    const maxPlayersInput = document.getElementById('maxPlayers');
+    const clearFiltersButton = document.getElementById('clearFilters');
+    const publishButton = document.getElementById('publish');
+    const resultsDiv = document.getElementById('results');
 
-    // Fetch data from the backend
-    fetch('/api/boardgames')
+    let boardGames = [];
+    let filteredBoardGames = [];
+
+    // Fetch data from the API
+    fetch('/data')
         .then(response => response.json())
         .then(data => {
             boardGames = data;
-            filteredGames = data;
+            filteredBoardGames = data;
             populateCategories(data);
-            renderTable(data);
+            displayBoardGames(data);
         });
 
-    // Populate categories in the filter dropdown
+    // Populate categories in the multiselect
     function populateCategories(data) {
-        let categories = new Set(data.flatMap(game => game.Category));
-        let categoryFilter = document.getElementById('categoryFilter');
+        const categories = new Set();
+        data.forEach(game => {
+            game.categories.forEach(category => {
+                categories.add(category.category_name);
+            });
+        });
         categories.forEach(category => {
-            categoryFilter.appendChild(new Option(category, category));
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            categorySelect.appendChild(option);
         });
     }
 
-    // Render the table with the given data
-    function renderTable(data) {
-        let tableBody = document.querySelector('#boardGameTable tbody');
-        tableBody.innerHTML = data.map(game => `
-            <tr>
-                <td>${game.BoardGameName}</td>
-                <td>${game.MinimumPlayers}</td>
-                <td>${game.MaximumPlayers}</td>
-                <td>${game.Category.join(', ')}</td>
-                <td>${game.FirstLED}</td>
-                <td>${game.LastLED}</td>
-            </tr>
-        `).join('');
+    // Display board games
+    function displayBoardGames(games) {
+        resultsDiv.innerHTML = '';
+        games.forEach(game => {
+            const gameDiv = document.createElement('div');
+            gameDiv.textContent = game.board_game_name;
+            resultsDiv.appendChild(gameDiv);
+        });
     }
 
-    // Apply filters and update the table
-    function applyFilters() {
-        let nameFilter = document.getElementById('nameFilter').value.toLowerCase();
-        let categoryFilter = Array.from(document.getElementById('categoryFilter').selectedOptions).map(option => option.value);
-        let playersFilter = parseInt(document.getElementById('playersFilter').value);
+    // Filter board games based on user input
+    function filterBoardGames() {
+        const boardGameName = boardGameNameInput.value.toLowerCase();
+        const selectedCategories = Array.from(categorySelect.selectedOptions).map(option => option.value);
+        const minPlayers = parseInt(minPlayersInput.value) || 0;
+        const maxPlayers = parseInt(maxPlayersInput.value) || Infinity;
 
-        filteredGames = boardGames.filter(game => {
-            let nameMatch = game.BoardGameName.toLowerCase().includes(nameFilter);
-            let categoryMatch = categoryFilter.length === 0 || game.Category.some(category => categoryFilter.includes(category));
-            let playersMatch = isNaN(playersFilter) || (game.MinimumPlayers <= playersFilter && game.MaximumPlayers >= playersFilter);
-            return nameMatch && categoryMatch && playersMatch;
+        filteredBoardGames = boardGames.filter(game => {
+            const nameMatch = game.board_game_name.toLowerCase().includes(boardGameName);
+            const categoryMatch = selectedCategories.length === 0 || game.categories.some(category => selectedCategories.includes(category.category_name));
+            const playerMatch = game.minimum_players >= minPlayers && game.maximum_players <= maxPlayers;
+            return nameMatch && categoryMatch && playerMatch;
         });
 
-        renderTable(filteredGames);
-        debounceSendSelected();
+        displayBoardGames(filteredBoardGames);
     }
 
-    // Debounce function to delay sending selected records
-    function debounceSendSelected() {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(sendSelectedRecords, 3000);
-    }
+    // Clear all filters
+    clearFiltersButton.addEventListener('click', function() {
+        boardGameNameInput.value = '';
+        categorySelect.selectedIndex = -1;
+        minPlayersInput.value = '';
+        maxPlayersInput.value = '';
+        filteredBoardGames = boardGames;
+        displayBoardGames(boardGames);
+    });
 
-    // Send selected records to the backend
-    function sendSelectedRecords() {
-        let numbersBetween = [];
-        let selectedRecords = filteredGames.map(game => {
-            for (let i = game.FirstLED; i <= game.LastLED; i++) {
-                numbersBetween.push(i);
-            }
-            return {
-                FirstLED: game.FirstLED,
-                LastLED: game.LastLED,
-                NumbersBetween: numbersBetween
-            };
-        });
-    
-        fetch('/api/selected-games', {
+    // Publish filtered board game IDs
+    publishButton.addEventListener('click', function() {
+        const boardGameIds = filteredBoardGames.map(game => game.id);
+        console.log(boardGameIds);
+        fetch('/publish', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(numbersBetween)
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ board_game_ids: boardGameIds })
         })
         .then(response => response.json())
-        .catch(console.error);
-    }
+        .then(data => {
+            console.log('Publish response:', data);
+        });
+    });
 
-    // Clear filters and reset the table
-    function clearFilters() {
-        document.getElementById('nameFilter').value = '';
-        document.getElementById('categoryFilter').selectedIndex = -1;
-        document.getElementById('playersFilter').value = '';
-        filteredGames = boardGames;
-        renderTable(boardGames);
-        debounceSendSelected();
-    }
-
-    // Event listeners
-    document.getElementById('applyFilters').addEventListener('click', applyFilters);
-    document.getElementById('clearFilters').addEventListener('click', clearFilters);
-    document.getElementById('nameFilter').addEventListener('input', applyFilters);
-    document.getElementById('categoryFilter').addEventListener('change', applyFilters);
-    document.getElementById('playersFilter').addEventListener('input', applyFilters);
-    document.getElementById('sendSelected').addEventListener('click', sendSelectedRecords);
+    // Add event listeners to filter inputs
+    boardGameNameInput.addEventListener('input', filterBoardGames);
+    categorySelect.addEventListener('change', filterBoardGames);
+    minPlayersInput.addEventListener('input', filterBoardGames);
+    maxPlayersInput.addEventListener('input', filterBoardGames);
 });
