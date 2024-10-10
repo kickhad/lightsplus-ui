@@ -9,3 +9,4 @@ lpui/prompts2.txt
 blach.py
 data.pickle
 *.pickle
+instance/lpui.db

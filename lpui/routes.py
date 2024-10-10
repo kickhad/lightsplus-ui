@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request, render_template
 import pickle 
-from . import db, mqtt
-from .models import BoardGame, Category
+from . import db
+from .models import BoardGame, Category, Update
 import json
 
 main = Blueprint('main', __name__)
@@ -56,9 +56,6 @@ def board_games_data():
         'categories': [{'id': cat.id, 'category_name': cat.category_name} for cat in bg.categories]
     } for bg in board_games])
 
-def mqtt_publish(payload):
-    mqtt.publish('lightsplus-20241007/a2', payload)
-
 @main.route('/publish', methods=['POST'])
 def publish():
     data = request.json
@@ -68,7 +65,11 @@ def publish():
     for i in query.all():        
         result.extend(range(i.first_led, i.last_led)) 
     payload = json.dumps(result)
-    mqtt_publish(payload)
+    leds = Update(leds=payload, published = False)
+    db.session.add(leds)
+    db.session.commit()   
+
+    # mqtt_publish(payload)
     # Publish LED data via MQTT
     
 

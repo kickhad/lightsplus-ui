@@ -1,19 +1,17 @@
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, select
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import paho.mqtt.client as mqtt
+import paho.mqtt.publish as publish
 import time
 from config import Config
 from lpui.models import Update
 
 
 # MQTT broker configuration
-mqtt_broker = Config.MQTT_BROKER_URL
-mqtt_port = Config.MQTT_BROKER_PORT
-mqtt_topic = Config.MQTT_TOPIC
+
 
 # SQLAlchemy setup
-engine = create_engine(Config.SQLALCHEMY_DATABASE_URI)
+engine = create_engine("sqlite:///instance/lpui.db")
 Session = sessionmaker(bind=engine)
 
 
@@ -28,7 +26,7 @@ def check_and_send_update():
         leds = record.leds
         print(f"Found new update: {leds}")
         # Send to MQTT
-        mqtt.publish.single(Config.MQTT_TOPIC, leds)        
+        publish.single('lightsplus-20241007/a2', leds, hostname='test.mosquitto.org')
 
         # Update the record to complete = True
         record.published = True
