@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request, render_template
+import pickle 
 from . import db, mqtt
 from .models import BoardGame, Category
 import json
@@ -55,33 +56,20 @@ def board_games_data():
         'categories': [{'id': cat.id, 'category_name': cat.category_name} for cat in bg.categories]
     } for bg in board_games])
 
+def mqtt_publish(payload):
+    mqtt.publish('lightsplus-20241007/a2', payload)
+
 @main.route('/publish', methods=['POST'])
 def publish():
     data = request.json
+    print(type(request.json))
     result = []
     query = BoardGame.query.filter(BoardGame.id.in_(data['board_game_ids']))
-    [result.extend(range(i.first_led, i.last_led)) for i in query.all()]
-
-
-    # data['board_game_ids']
-
-    # board_game_name = data.get('boardGameName')
-    # player_count = data.get('playerCount')
-    # table_data = data.get('tableData')
-
-    # # Process LED data
-    # leds = []
-    # for r in table_data:
-    #     [leds.append(n) for n in range(r['first_led'], r['last_led'] + 1)]
-
+    for i in query.all():        
+        result.extend(range(i.first_led, i.last_led)) 
+    payload = json.dumps(result)
+    mqtt_publish(payload)
     # Publish LED data via MQTT
-    mqtt.publish('lightsplus-20241007/a2', json.dumps(result))
-
-    # # Here you can process the data as needed, e.g., save it to a file or database
-    # print('Received data:', data)
-    # print('Board Game Name:', board_game_name)
-    # print('Player Count:', player_count)
-    # print('Table Data:', table_data)
-    # print('LEDs:', leds)
+    
 
     return jsonify({'message': 'Table state published successfully'})

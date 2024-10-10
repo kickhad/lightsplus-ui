@@ -6,3 +6,6 @@ js-test/
 .vscode/
 prompts.txt
 lpui/prompts2.txt
+blach.py
+data.pickle
+*.pickle
